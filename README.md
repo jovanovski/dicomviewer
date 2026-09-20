@@ -4,11 +4,19 @@ A DICOM viewer that is just an HTML page. No build step, no server, no
 dependencies, no network access. Open `index.html` in a browser and drop a
 study on it.
 
+**[Try it →](https://jovanovski.github.io/dicomviewer/)**
+
+The hosted copy is the same static page. Your images are still read and decoded
+entirely in your own browser — the page has no backend and uploads nothing.
+
 Images are read with the `File` API and decoded in the page. Nothing is
 uploaded anywhere and no remote script is loaded, so it works on an air-gapped
 machine and behaves identically there.
 
 ## Quick start
+
+Use the [hosted page](https://jovanovski.github.io/dicomviewer/), or run it
+locally:
 
 ```sh
 git clone https://github.com/jovanovski/dicomviewer.git
