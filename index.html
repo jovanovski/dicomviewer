@@ -60,7 +60,7 @@
     <button class="btn" id="btn-open-folder" type="button">
       <svg class="icon"><use href="#i-folder"/></svg><span>Open folder</span>
     </button>
-    <input type="file" id="input-files" multiple accept=".dcm,.dicom,.ima,.img,application/dicom" hidden>
+    <input type="file" id="input-files" multiple accept=".dcm,.dicom,.ima,.img,.zip,.tar,.tgz,.gz,application/dicom,application/zip" hidden>
     <input type="file" id="input-folder" webkitdirectory directory multiple hidden>
   </div>
 
@@ -131,9 +131,9 @@
           <path d="M6 42l13-13 10 10 8-8 27 27"/>
           <circle cx="42" cy="24" r="5"/>
         </svg>
-        <h2>Drop DICOM files here</h2>
+        <h2>Drop DICOM files or a study archive here</h2>
         <p>Or use <strong>Open files</strong> / <strong>Open folder</strong> above. Files are read in your browser and never uploaded.</p>
-        <p class="dropzone-hint">Accepts <code>.dcm</code>, <code>.ima</code>, extensionless DICOM, and whole study folders.</p>
+        <p class="dropzone-hint">Accepts <code>.dcm</code>, <code>.ima</code>, extensionless DICOM, whole study folders, and <code>.zip</code> / <code>.tar.gz</code> archives.</p>
       </div>
     </div>
 
@@ -214,6 +214,7 @@
 </footer>
 
 <script src="js/dictionary.js"></script>
+<script src="js/archive.js"></script>
 <script src="js/parser.js"></script>
 <script src="js/decode.js"></script>
 <script src="js/image.js"></script>

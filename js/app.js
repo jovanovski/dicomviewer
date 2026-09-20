@@ -120,14 +120,33 @@
     return !/\.(jpg|jpeg|png|gif|pdf|txt|xml|html|zip|gz|tar|doc|docx|csv|json|md|ini|db)$/i.test(file.name);
   }
 
+  /* A selection may contain archives; those are expanded into their entries
+   * first, and everything downstream treats the result as ordinary files. */
   function loadFiles(fileList) {
-    var files = Array.prototype.slice.call(fileList).filter(isProbablyDicom);
-    if (!files.length) {
-      showMessage('No DICOM files found in that selection.');
+    var token = ++state.loadToken;
+    var selection = Array.prototype.slice.call(fileList);
+    var hasArchive = selection.some(global.DICOMArchive.looksLikeArchive);
+
+    if (!hasArchive) {
+      readAll(selection, [], token);
       return;
     }
 
-    var token = ++state.loadToken;
+    showLoading(true, 'Opening archive…');
+    global.DICOMArchive.expandAll(selection, setLoadingText).then(function (res) {
+      if (token !== state.loadToken) return;
+      readAll(res.files, res.notes, token);
+    });
+  }
+
+  function readAll(fileList, notes, token) {
+    var files = fileList.filter(isProbablyDicom);
+    if (!files.length) {
+      showLoading(false);
+      showMessage(notes.length ? notes.join(' ') : 'No DICOM files found in that selection.');
+      return;
+    }
+
     var loaded = [];
     var skipped = [];
     var index = 0;
@@ -157,15 +176,18 @@
     function finish() {
       if (token !== state.loadToken) return;
       showLoading(false);
+      var prefix = notes.length ? notes.join(' ') + ' ' : '';
       if (!loaded.length) {
-        showMessage('None of those files could be read as DICOM.' +
+        showMessage(prefix + 'None of those files could be read as DICOM.' +
           (skipped.length ? ' First problem: ' + skipped[0].error : ''));
         return;
       }
       mergeInstances(loaded);
       if (skipped.length) {
-        showMessage(skipped.length + ' of ' + files.length + ' file' +
+        showMessage(prefix + skipped.length + ' of ' + files.length + ' file' +
           (files.length === 1 ? '' : 's') + ' could not be read (' + skipped[0].error + ').');
+      } else if (prefix) {
+        showMessage(notes.join(' '));
       }
     }
 
