@@ -1201,6 +1201,26 @@
 
   function hideDropzone() { dom.dropzone.hidden = true; }
 
+  /* ------------------------------------------------------- series drawer */
+
+  /* Below the layout breakpoint the series rail slides in over the image
+   * instead of holding a column of its own. Must match the media query in
+   * app.css, which is the only place the rail becomes a drawer. */
+  function narrowLayout() {
+    return global.matchMedia && global.matchMedia('(max-width: 680px)').matches;
+  }
+
+  function setDrawer(open) {
+    dom.panelLeft.classList.toggle('open', open);
+    dom.scrim.classList.toggle('open', open);
+    dom.btnMenu.setAttribute('aria-expanded', String(open));
+    dom.btnMenu.setAttribute('aria-label', open ? 'Hide series' : 'Show series');
+  }
+
+  function closeDrawer() {
+    if (dom.panelLeft.classList.contains('open')) setDrawer(false);
+  }
+
   /* --------------------------------------------------------------- export */
 
   function exportPng() {
@@ -1259,6 +1279,7 @@
       ovTL: 'ov-tl', ovTR: 'ov-tr', ovBL: 'ov-bl', ovBR: 'ov-br',
       ovTop: 'ov-top', ovBottom: 'ov-bottom', ovLeft: 'ov-left', ovRight: 'ov-right',
       seriesList: 'series-list', seriesCount: 'series-count',
+      panelLeft: 'panel-left', scrim: 'scrim', btnMenu: 'btn-menu',
       infoBody: 'info-body', metaBody: 'meta-body', metaFilter: 'meta-filter',
       tabMeta: 'tab-meta',
       measureBody: 'measure-body', presetSelect: 'preset-select',
@@ -1344,8 +1365,17 @@
 
     dom.seriesList.addEventListener('click', function (e) {
       var item = e.target.closest('[data-series]');
-      if (item) selectSeries(parseInt(item.dataset.series, 10), 0);
+      if (!item) return;
+      selectSeries(parseInt(item.dataset.series, 10), 0);
+      /* Picking a series is the reason the drawer was opened, so get it back
+       * out of the way of the image. */
+      closeDrawer();
     });
+
+    dom.btnMenu.addEventListener('click', function () {
+      setDrawer(!dom.panelLeft.classList.contains('open'));
+    });
+    dom.scrim.addEventListener('click', closeDrawer);
 
     dom.measureBody.addEventListener('click', function (e) {
       var del = e.target.closest('[data-delete]');
@@ -1422,7 +1452,13 @@
     });
 
     document.addEventListener('keydown', onKeyDown);
-    global.addEventListener('resize', function () { viewport.resize(); redraw(); });
+    /* Rotating a phone or widening the window puts the rail back in its own
+     * column, where a leftover "open" class would strand the scrim. */
+    global.addEventListener('resize', function () {
+      if (!narrowLayout()) closeDrawer();
+      viewport.resize();
+      redraw();
+    });
   }
 
   /* Recursively walks dropped directory entries. */
@@ -1487,7 +1523,8 @@
         else handled = false;
         break;
       case 'Escape':
-        if (state.pending) { removeAnnotation(state.pending.id); state.pending = null; renderMeasurements(); redraw(); }
+        if (dom.panelLeft.classList.contains('open')) closeDrawer();
+        else if (state.pending) { removeAnnotation(state.pending.id); state.pending = null; renderMeasurements(); redraw(); }
         else if (state.selected) { state.selected = null; renderMeasurements(); redraw(); }
         else handled = false;
         break;

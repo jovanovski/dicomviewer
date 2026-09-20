@@ -37,11 +37,16 @@
     <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6.5 5.5 12 5.5 21.5 12 21.5 12 17.5 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
     <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
     <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 22 20H2z"/><path d="M12 10v4.5M12 17v.5"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16" stroke-width="1.9"/></symbol>
   </defs>
 </svg>
 
 <header class="toolbar">
   <div class="brand">
+    <button class="btn icon-only menu-btn" id="btn-menu" type="button"
+            aria-label="Show series" aria-controls="panel-left" aria-expanded="false">
+      <svg class="icon"><use href="#i-menu"/></svg>
+    </button>
     <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
       <rect x="1.5" y="1.5" width="25" height="25" rx="4"/>
       <path d="M8 19.5c2.2-7 4.2-10.5 6-10.5s3.8 3.5 6 10.5" />
@@ -110,6 +115,9 @@
 </header>
 
 <main class="workspace">
+
+  <!-- Dims the image behind the series drawer on narrow screens. -->
+  <div class="scrim" id="scrim"></div>
 
   <aside class="panel panel-left" id="panel-left">
     <div class="panel-head">

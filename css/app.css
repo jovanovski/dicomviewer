@@ -80,6 +80,9 @@ body {
 .toolbar::-webkit-scrollbar { display: none; }
 
 .brand { display: flex; align-items: center; gap: 9px; padding-right: 6px; flex: none; }
+/* Both only exist once the series rail turns into a drawer. */
+.menu-btn { display: none; }
+.scrim { display: none; }
 .brand-mark {
   width: 26px; height: 26px;
   fill: none; stroke: var(--accent); stroke-width: 1.6;
@@ -709,8 +712,49 @@ input[type="range"]::-moz-range-thumb {
 }
 @media (max-width: 680px) {
   .workspace { grid-template-columns: minmax(0, 1fr); }
-  .panel-left { display: none; }
   .ov { font-size: 10.5px; max-width: 48%; }
+
+  /* There is no room for a permanent rail, so the series list slides in over
+   * the image instead. The logo becomes a hamburger in the same spot, which
+   * is the only hint that the list is still there. */
+  .brand-mark { display: none; }
+  .menu-btn { display: inline-flex; color: var(--text); }
+  .menu-btn[aria-expanded="true"] {
+    background: var(--accent-weak);
+    border-color: var(--accent-line);
+    color: var(--accent);
+  }
+
+  .panel-left {
+    position: fixed;
+    top: var(--toolbar-h);
+    bottom: var(--status-h);
+    left: 0;
+    width: min(78vw, 300px);
+    z-index: 40;
+    transform: translateX(-101%);
+    transition: transform .22s ease;
+    box-shadow: 14px 0 30px rgba(0, 0, 0, 0.55);
+  }
+  .panel-left.open { transform: none; }
+
+  .scrim {
+    display: block;
+    position: fixed;
+    top: var(--toolbar-h);
+    bottom: var(--status-h);
+    left: 0;
+    right: 0;
+    z-index: 39;
+    background: rgba(0, 0, 0, 0.5);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .22s ease;
+  }
+  .scrim.open { opacity: 1; pointer-events: auto; }
+
+  /* Comfortable touch targets once this is a finger-driven list. */
+  .series-item { padding-top: 10px; padding-bottom: 10px; }
 }
 
 @media (prefers-reduced-motion: reduce) {
