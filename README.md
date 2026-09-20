@@ -1,17 +1,14 @@
 # DICOM Viewer
 
 A DICOM viewer that is just an HTML page. No build step, no server, no
-dependencies, no network access. Open `index.html` in a browser and drop a
-study on it.
+dependencies. Open `index.html` in a browser and drop a study on it.
 
 **[Try it →](https://jovanovski.github.io/dicomviewer/)**
 
-The hosted copy is the same static page. Your images are still read and decoded
-entirely in your own browser — the page has no backend and uploads nothing.
-
 Images are read with the `File` API and decoded in the page. Nothing is
-uploaded anywhere and no remote script is loaded, so it works on an air-gapped
-machine and behaves identically there.
+uploaded and no remote script is loaded — that holds for the hosted page above
+too, which is this same static file served over HTTPS. It behaves identically
+on an air-gapped machine.
 
 ## Quick start
 
@@ -26,7 +23,8 @@ open index.html          # macOS   (xdg-open on Linux, start on Windows)
 
 That is the whole install. The scripts are classic `<script>` tags rather than
 ES modules and nothing is fetched at runtime, so opening the file directly over
-`file://` works. Serving it over HTTP also works and buys nothing.
+`file://` works. Serving it over HTTP works too — that is all the hosted page
+is.
 
 Then drag DICOM files — or an entire study folder — onto the window, or use
 **Open files** / **Open folder**.
