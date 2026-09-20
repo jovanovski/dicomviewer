@@ -12,7 +12,11 @@
     this.canvas = canvas;
     this.ctx = canvas.getContext('2d');
     this.offscreen = document.createElement('canvas');
-    this.offctx = this.offscreen.getContext('2d', { willReadFrequently: true });
+    /* Nothing ever reads this buffer back — it is written with putImageData
+     * and blitted to the display canvas — so it must stay GPU-resident.
+     * Asking for willReadFrequently here pins it to a software surface and
+     * turns every draw() into a fresh texture upload. */
+    this.offctx = this.offscreen.getContext('2d');
     this.imageData = null;
     this.frame = null;
 

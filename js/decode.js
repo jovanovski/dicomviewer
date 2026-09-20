@@ -101,6 +101,13 @@
     return out;
   }
 
+  /* A Uint16Array view reads in the host's byte order, while everything that
+   * reaches toTypedArray has already been normalised to little-endian. The
+   * shortcut below is therefore only valid on a little-endian host. */
+  var PLATFORM_LE = (function () {
+    return new Uint8Array(new Uint16Array([1]).buffer)[0] === 1;
+  })();
+
   /* Turns a raw little-endian byte buffer into the typed array the pixel
    * geometry calls for, applying Bits Stored masking and sign extension. */
   function toTypedArray(raw, info) {
@@ -128,10 +135,35 @@
 
     if (info.bitsAllocated === 16) {
       var available = Math.min(count, raw.byteLength >> 1);
-      var view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
       var bitsStored = info.bitsStored || 16;
       var needsMask = bitsStored < 16;
       var shift = 16 - bitsStored;
+      var mask = (1 << bitsStored) - 1;
+
+      /* Reading through a Uint16Array view rather than per-pixel DataView
+       * calls is roughly an order of magnitude quicker, which matters because
+       * every scroll step decodes a frame. Needs a little-endian host and a
+       * 2-byte-aligned buffer; otherwise fall through to the general path. */
+      if (PLATFORM_LE && (raw.byteOffset & 1) === 0) {
+        var src = new Uint16Array(raw.buffer, raw.byteOffset, available);
+        /* Copy rather than alias: callers expect an array they own, and the
+         * source may be a window onto the whole file. */
+        if (!needsMask && !signed) return new Uint16Array(src);
+        var fast = signed ? new Int16Array(available) : new Uint16Array(available);
+        if (!needsMask) {
+          /* Int16Array assignment already truncates to a signed 16-bit value. */
+          fast.set(src);
+          return fast;
+        }
+        for (var q = 0; q < available; q++) {
+          var qv = src[q] & mask;
+          /* Sign-extend from the stored high bit, not from bit 15. */
+          fast[q] = signed ? ((qv << shift) >> shift) : qv;
+        }
+        return fast;
+      }
+
+      var view = new DataView(raw.buffer, raw.byteOffset, raw.byteLength);
       var out16 = signed ? new Int16Array(available) : new Uint16Array(available);
       for (var i = 0; i < available; i++) {
         var v = view.getUint16(i * 2, true);

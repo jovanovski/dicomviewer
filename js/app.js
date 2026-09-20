@@ -43,6 +43,17 @@
   var thumbQueue = [];
   var thumbRunning = false;
 
+  /* Moving through a series is cheap; painting a frame is not. Wheel and
+   * scrubber input arrive far faster than a frame can be decoded, so the paint
+   * is coalesced onto an animation frame and never more than one runs at a
+   * time. The latest position wins and the ones scrolled past are dropped. */
+  var nav = { raf: 0, busy: false, dirty: false };
+
+  /* The metadata tree is only built while its tab is on screen, and only when
+   * it would actually differ — see renderMetadata. */
+  var metaDirty = true;
+  var metaShown = { dataSet: null, filter: null };
+
   /* ------------------------------------------------------------ formatting */
 
   /* DICOM person names are Family^Given^Middle^Prefix^Suffix. */
@@ -327,6 +338,8 @@
     state.activeIndex = Math.max(0, Math.min(instanceIdx || 0, state.series[seriesIdx].instances.length - 1));
     state.activeFrame = 0;
     stopCine();
+    /* Drop any paint still queued for the series we are leaving. */
+    nav.dirty = false;
     renderSeriesList();
     showCurrent(!changed).then(function () {
       if (changed) { viewport.fitToWindow(); redraw(); }
@@ -363,6 +376,31 @@
     });
   }
 
+  /* Requests a paint of whatever position the state now holds. Repeated calls
+   * within one animation frame collapse into a single paint, and a paint that
+   * is still decoding holds off the next one rather than queueing behind it. */
+  function scheduleShow() {
+    nav.dirty = true;
+    if (nav.raf || nav.busy) return;
+    nav.raf = global.requestAnimationFrame(function () {
+      nav.raf = 0;
+      if (!nav.dirty) return;
+      nav.dirty = false;
+      nav.busy = true;
+      showCurrent(true).then(function () {
+        nav.busy = false;
+        if (nav.dirty) scheduleShow();
+      });
+    });
+  }
+
+  /* The scrubber is cheap enough to track the scroll exactly, so it updates
+   * straight away while the image itself catches up. */
+  function afterNavigate() {
+    refreshScrub();
+    scheduleShow();
+  }
+
   function step(delta) {
     var series = state.series[state.activeSeries];
     if (!series) return;
@@ -373,7 +411,7 @@
       var f = state.activeFrame + delta;
       if (f >= 0 && f < inst.numberOfFrames) {
         state.activeFrame = f;
-        showCurrent(true);
+        afterNavigate();
         return;
       }
       /* Fall through to the next instance when running off either end. */
@@ -382,8 +420,7 @@
         state.activeIndex = nextIdx;
         var next = series.instances[nextIdx];
         state.activeFrame = delta > 0 ? 0 : next.numberOfFrames - 1;
-        showCurrent(true);
-        renderSeriesList();
+        afterNavigate();
       }
       return;
     }
@@ -392,8 +429,7 @@
     if (idx < 0 || idx >= series.instances.length) return;
     state.activeIndex = idx;
     state.activeFrame = 0;
-    showCurrent(true);
-    renderSeriesList();
+    afterNavigate();
   }
 
   function goTo(position) {
@@ -405,9 +441,8 @@
     } else {
       state.activeIndex = Math.max(0, Math.min(position, series.instances.length - 1));
       state.activeFrame = 0;
-      renderSeriesList();
     }
-    showCurrent(true);
+    afterNavigate();
   }
 
   function scrubExtent() {
@@ -795,7 +830,9 @@
       var childHtml = '';
       if (el.items) {
         for (var k = 0; k < el.items.length; k++) {
-          var inner = metaRows(ds, el.items[k], depth + 1, matches ? '' : filter);
+          /* Read nested values out of the item itself — passing the top-level
+           * dataset down made valuePreview look tags up in the wrong scope. */
+          var inner = metaRows(ds.item(el.items[k]), el.items[k], depth + 1, matches ? '' : filter);
           if (inner) {
             childHtml += '<div class="meta-item"><div class="meta-item-head">Item ' + (k + 1) + '</div>' + inner + '</div>';
           }
@@ -814,14 +851,33 @@
     return html;
   }
 
+  /* An enhanced multi-frame object carries one Per-frame Functional Groups
+   * item per frame, so its tag tree runs to five figures — around 8,000 rows
+   * and 2 MB of HTML for a 112-frame MR. Rebuilding that on every scroll step,
+   * into a tab that is usually not even on screen, was what made scrolling
+   * crawl. Scrolling now just marks it stale; it is built when it is looked
+   * at. */
   function renderMetadata() {
+    metaDirty = true;
+    if (dom.tabMeta && dom.tabMeta.classList.contains('active')) renderMetadataNow();
+  }
+
+  function renderMetadataNow() {
+    metaDirty = false;
     var inst = currentInstance();
     if (!inst) {
+      metaShown.dataSet = null;
       dom.metaBody.innerHTML = '<p class="panel-empty">No image selected.</p>';
       return;
     }
     var ds = inst.dataSet;
     var filter = (dom.metaFilter.value || '').trim().toLowerCase();
+    /* The panel shows instance-level tags, so every frame of a multi-frame
+     * object produces byte-identical markup. Scrolling through one keeps the
+     * tree it already has rather than rebuilding tens of thousands of nodes. */
+    if (metaShown.dataSet === ds && metaShown.filter === filter) return;
+    metaShown.dataSet = ds;
+    metaShown.filter = filter;
     var html = '';
     var metaKeys = Object.keys(ds.meta);
     if (metaKeys.length) {
@@ -1182,6 +1238,7 @@
       ovTop: 'ov-top', ovBottom: 'ov-bottom', ovLeft: 'ov-left', ovRight: 'ov-right',
       seriesList: 'series-list', seriesCount: 'series-count',
       infoBody: 'info-body', metaBody: 'meta-body', metaFilter: 'meta-filter',
+      tabMeta: 'tab-meta',
       measureBody: 'measure-body', presetSelect: 'preset-select',
       statusFile: 'status-file', statusPosition: 'status-position', statusValue: 'status-value',
       statusWindow: 'status-window', statusZoom: 'status-zoom',
@@ -1285,7 +1342,7 @@
       }
     });
 
-    dom.metaFilter.addEventListener('input', renderMetadata);
+    dom.metaFilter.addEventListener('input', renderMetadataNow);
 
     Array.prototype.forEach.call(document.querySelectorAll('.tab'), function (tab) {
       tab.addEventListener('click', function () {
@@ -1297,6 +1354,8 @@
         Array.prototype.forEach.call(document.querySelectorAll('.tab-panel'), function (p) {
           p.classList.toggle('active', p.id === 'tab-' + tab.dataset.tab);
         });
+        /* Catch up on whatever was scrolled past while this tab was hidden. */
+        if (tab.dataset.tab === 'meta' && metaDirty) renderMetadataNow();
       });
     });
 
