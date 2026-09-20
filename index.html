@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DICOM Viewer</title>
+<meta name="description" content="A local, offline DICOM image viewer.">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<svg class="sprite" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-window" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5a8.5 8.5 0 0 1 0 17z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-pan" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18M12 3 9.5 5.5M12 3l2.5 2.5M12 21l-2.5-2.5M12 21l2.5-2.5M3 12l2.5-2.5M3 12l2.5 2.5M21 12l-2.5-2.5M21 12l-2.5 2.5"/></symbol>
+    <symbol id="i-zoom" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5 21 21M8 10.5h5M10.5 8v5"/></symbol>
+    <symbol id="i-probe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><path d="M12 2.5v5M12 16.5v5M2.5 12h5M16.5 12h5"/></symbol>
+    <symbol id="i-length" viewBox="0 0 24 24"><path d="M3 15 15 3l6 6L9 21z"/><path d="m7 11 1.8 1.8M10 8l1.8 1.8M13 5l1.8 1.8"/></symbol>
+    <symbol id="i-angle" viewBox="0 0 24 24"><path d="M4 20h16M4 20 15 5"/><path d="M10.5 20a7.5 7.5 0 0 0 1.4-4.4"/></symbol>
+    <symbol id="i-rect" viewBox="0 0 24 24"><rect x="3.5" y="5.5" width="17" height="13" rx="1.5"/></symbol>
+    <symbol id="i-ellipse" viewBox="0 0 24 24"><ellipse cx="12" cy="12" rx="8.5" ry="6.5"/></symbol>
+    <symbol id="i-invert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 3.5v17a8.5 8.5 0 0 0 0-17z" fill="currentColor" stroke="none"/></symbol>
+    <symbol id="i-rot-left" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.9-6.4"/><path d="M3.5 4v5h5"/></symbol>
+    <symbol id="i-rot-right" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.9-6.4"/><path d="M20.5 4v5h-5"/></symbol>
+    <symbol id="i-flip-h" viewBox="0 0 24 24"><path d="M12 3v18" stroke-dasharray="2 2"/><path d="M9 7.5 4.5 12 9 16.5z"/><path d="M15 7.5 19.5 12 15 16.5z"/></symbol>
+    <symbol id="i-flip-v" viewBox="0 0 24 24"><path d="M3 12h18" stroke-dasharray="2 2"/><path d="M7.5 9 12 4.5 16.5 9z"/><path d="M7.5 15 12 19.5 16.5 15z"/></symbol>
+    <symbol id="i-fit" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 2.5V8h-5.5"/></symbol>
+    <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 10.5 5 5 5-5"/><path d="M4 20h16"/></symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24"><path d="M4 7h16M9.5 7V4h5v3"/><path d="m6.5 7 1 13h9l1-13"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5z" fill="currentColor" stroke-linejoin="round"/></symbol>
+    <symbol id="i-pause" viewBox="0 0 24 24"><path d="M8.5 4v16M15.5 4v16" stroke-width="2.6"/></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6.5h6l2 2.5h10V19H3z"/></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M6.5 2.5h7l4.5 4.5v14.5h-11z"/><path d="M13.5 2.5V7H18"/></symbol>
+    <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6.5 5.5 12 5.5 21.5 12 21.5 12 17.5 18.5 12 18.5 2.5 12 2.5 12z"/><circle cx="12" cy="12" r="2.8"/></symbol>
+    <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+    <symbol id="i-warn" viewBox="0 0 24 24"><path d="M12 3.5 22 20H2z"/><path d="M12 10v4.5M12 17v.5"/></symbol>
+  </defs>
+</svg>
+
+<header class="toolbar">
+  <div class="brand">
+    <svg class="brand-mark" viewBox="0 0 28 28" aria-hidden="true">
+      <rect x="1.5" y="1.5" width="25" height="25" rx="4"/>
+      <path d="M8 19.5c2.2-7 4.2-10.5 6-10.5s3.8 3.5 6 10.5" />
+      <circle cx="14" cy="8" r="1.6" fill="currentColor" stroke="none"/>
+    </svg>
+    <div class="brand-text">
+      <strong>DICOM Viewer</strong>
+      <span>Local &middot; offline</span>
+    </div>
+  </div>
+
+  <div class="tb-group">
+    <button class="btn" id="btn-open-files" type="button">
+      <svg class="icon"><use href="#i-file"/></svg><span>Open files</span>
+    </button>
+    <button class="btn" id="btn-open-folder" type="button">
+      <svg class="icon"><use href="#i-folder"/></svg><span>Open folder</span>
+    </button>
+    <input type="file" id="input-files" multiple accept=".dcm,.dicom,.ima,.img,application/dicom" hidden>
+    <input type="file" id="input-folder" webkitdirectory directory multiple hidden>
+  </div>
+
+  <div class="tb-sep" role="separator"></div>
+
+  <div class="tb-group" id="tool-group" role="group" aria-label="Tools">
+    <button class="btn icon-only active" data-tool="window" type="button" title="Window / Level  (W)" aria-pressed="true"><svg class="icon"><use href="#i-window"/></svg></button>
+    <button class="btn icon-only" data-tool="pan" type="button" title="Pan  (P)" aria-pressed="false"><svg class="icon"><use href="#i-pan"/></svg></button>
+    <button class="btn icon-only" data-tool="zoom" type="button" title="Zoom  (Z)" aria-pressed="false"><svg class="icon"><use href="#i-zoom"/></svg></button>
+    <button class="btn icon-only" data-tool="probe" type="button" title="Probe pixel value  (B)" aria-pressed="false"><svg class="icon"><use href="#i-probe"/></svg></button>
+    <button class="btn icon-only" data-tool="length" type="button" title="Length  (L)" aria-pressed="false"><svg class="icon"><use href="#i-length"/></svg></button>
+    <button class="btn icon-only" data-tool="angle" type="button" title="Angle  (A)" aria-pressed="false"><svg class="icon"><use href="#i-angle"/></svg></button>
+    <button class="btn icon-only" data-tool="rect" type="button" title="Rectangle ROI  (R)" aria-pressed="false"><svg class="icon"><use href="#i-rect"/></svg></button>
+    <button class="btn icon-only" data-tool="ellipse" type="button" title="Ellipse ROI  (E)" aria-pressed="false"><svg class="icon"><use href="#i-ellipse"/></svg></button>
+  </div>
+
+  <div class="tb-sep" role="separator"></div>
+
+  <div class="tb-group">
+    <label class="select-wrap" title="Window presets">
+      <select id="preset-select" aria-label="Window preset">
+        <option value="">Window preset…</option>
+      </select>
+    </label>
+    <button class="btn icon-only" id="btn-invert" type="button" title="Invert greyscale  (I)" aria-pressed="false"><svg class="icon"><use href="#i-invert"/></svg></button>
+  </div>
+
+  <div class="tb-sep" role="separator"></div>
+
+  <div class="tb-group">
+    <button class="btn icon-only" id="btn-rot-left" type="button" title="Rotate left"><svg class="icon"><use href="#i-rot-left"/></svg></button>
+    <button class="btn icon-only" id="btn-rot-right" type="button" title="Rotate right"><svg class="icon"><use href="#i-rot-right"/></svg></button>
+    <button class="btn icon-only" id="btn-flip-h" type="button" title="Flip horizontally"><svg class="icon"><use href="#i-flip-h"/></svg></button>
+    <button class="btn icon-only" id="btn-flip-v" type="button" title="Flip vertically"><svg class="icon"><use href="#i-flip-v"/></svg></button>
+    <button class="btn icon-only" id="btn-fit" type="button" title="Fit to window  (F)"><svg class="icon"><use href="#i-fit"/></svg></button>
+    <button class="btn text-btn" id="btn-actual" type="button" title="Zoom to 1:1">1:1</button>
+    <button class="btn icon-only" id="btn-reset" type="button" title="Reset view  (0)"><svg class="icon"><use href="#i-reset"/></svg></button>
+  </div>
+
+  <div class="tb-spacer"></div>
+
+  <div class="tb-group">
+    <button class="btn icon-only" id="btn-overlay" type="button" title="Toggle overlay text  (O)" aria-pressed="true"><svg class="icon"><use href="#i-eye"/></svg></button>
+    <button class="btn icon-only" id="btn-clear-annotations" type="button" title="Clear measurements on this image"><svg class="icon"><use href="#i-trash"/></svg></button>
+    <button class="btn icon-only" id="btn-export" type="button" title="Save the current view as a PNG"><svg class="icon"><use href="#i-download"/></svg></button>
+  </div>
+</header>
+
+<main class="workspace">
+
+  <aside class="panel panel-left" id="panel-left">
+    <div class="panel-head">
+      <h2>Series</h2>
+      <span class="count" id="series-count">0</span>
+    </div>
+    <div class="series-list" id="series-list" role="listbox" aria-label="Series">
+      <p class="panel-empty">No images loaded.</p>
+    </div>
+  </aside>
+
+  <section class="stage" id="stage">
+    <canvas id="canvas" tabindex="0" aria-label="Image viewport"></canvas>
+
+    <div class="dropzone" id="dropzone">
+      <div class="dropzone-inner">
+        <svg class="dropzone-icon" viewBox="0 0 64 64" aria-hidden="true">
+          <rect x="6" y="10" width="52" height="44" rx="4"/>
+          <path d="M6 42l13-13 10 10 8-8 27 27"/>
+          <circle cx="42" cy="24" r="5"/>
+        </svg>
+        <h2>Drop DICOM files here</h2>
+        <p>Or use <strong>Open files</strong> / <strong>Open folder</strong> above. Files are read in your browser and never uploaded.</p>
+        <p class="dropzone-hint">Accepts <code>.dcm</code>, <code>.ima</code>, extensionless DICOM, and whole study folders.</p>
+      </div>
+    </div>
+
+    <div class="viewport-overlay" id="overlay" aria-hidden="true">
+      <div class="ov ov-tl" id="ov-tl"></div>
+      <div class="ov ov-tr" id="ov-tr"></div>
+      <div class="ov ov-bl" id="ov-bl"></div>
+      <div class="ov ov-br" id="ov-br"></div>
+      <div class="ov-edge ov-top" id="ov-top"></div>
+      <div class="ov-edge ov-bottom" id="ov-bottom"></div>
+      <div class="ov-edge ov-left" id="ov-left"></div>
+      <div class="ov-edge ov-right" id="ov-right"></div>
+    </div>
+
+    <div class="stage-message" id="stage-message" hidden>
+      <svg class="icon"><use href="#i-warn"/></svg>
+      <span id="stage-message-text"></span>
+      <button class="icon-btn" id="stage-message-close" type="button" aria-label="Dismiss"><svg class="icon"><use href="#i-close"/></svg></button>
+    </div>
+
+    <div class="scrub" id="scrub" hidden>
+      <button class="btn icon-only" id="btn-cine" type="button" title="Play cine  (Space)"><svg class="icon"><use href="#i-play"/></svg></button>
+      <input type="range" id="scrub-range" min="0" max="0" value="0" aria-label="Image position in series">
+      <span class="scrub-label" id="scrub-label">1 / 1</span>
+      <label class="fps" title="Cine frame rate">
+        <input type="number" id="cine-fps" min="1" max="60" value="15" aria-label="Cine frames per second">
+        <span>fps</span>
+      </label>
+    </div>
+
+    <div class="loading" id="loading" hidden>
+      <div class="spinner"></div>
+      <span id="loading-text">Loading…</span>
+    </div>
+  </section>
+
+  <aside class="panel panel-right" id="panel-right">
+    <div class="panel-tabs" role="tablist">
+      <button class="tab active" data-tab="info" role="tab" aria-selected="true" type="button">Info</button>
+      <button class="tab" data-tab="meta" role="tab" aria-selected="false" type="button">Metadata</button>
+      <button class="tab" data-tab="measure" role="tab" aria-selected="false" type="button">Measurements</button>
+    </div>
+
+    <div class="tab-panel active" id="tab-info" role="tabpanel">
+      <div class="info-body" id="info-body">
+        <p class="panel-empty">No image selected.</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-meta" role="tabpanel">
+      <div class="meta-search">
+        <input type="search" id="meta-filter" placeholder="Filter by tag or name…" aria-label="Filter metadata">
+      </div>
+      <div class="meta-body" id="meta-body">
+        <p class="panel-empty">No image selected.</p>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-measure" role="tabpanel">
+      <div class="measure-body" id="measure-body">
+        <p class="panel-empty">No measurements on this image.</p>
+      </div>
+      <div class="measure-actions">
+        <button class="btn wide" id="btn-copy-measurements" type="button">Copy all measurements</button>
+      </div>
+    </div>
+  </aside>
+</main>
+
+<footer class="statusbar">
+  <span class="status-item" id="status-file">No file</span>
+  <span class="status-item" id="status-position"></span>
+  <span class="status-item" id="status-value"></span>
+  <span class="status-spacer"></span>
+  <span class="status-item" id="status-window"></span>
+  <span class="status-item" id="status-zoom"></span>
+  <span class="status-item hint" id="status-hint">Drag to window · Wheel to scroll · Right-drag to zoom · Middle-drag to pan</span>
+</footer>
+
+<script src="js/dictionary.js"></script>
+<script src="js/parser.js"></script>
+<script src="js/decode.js"></script>
+<script src="js/image.js"></script>
+<script src="js/viewport.js"></script>
+<script src="js/tools.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
