@@ -80,8 +80,10 @@ body {
 .toolbar::-webkit-scrollbar { display: none; }
 
 .brand { display: flex; align-items: center; gap: 9px; padding-right: 6px; flex: none; }
-/* Both only exist once the series rail turns into a drawer. */
-.menu-btn { display: none; }
+/* Both only exist once the series rail turns into a drawer. Scoped past
+ * .btn, which would otherwise win on source order and keep the hamburger
+ * taking up space next to the logo. */
+.brand .menu-btn { display: none; }
 .scrim { display: none; }
 .brand-mark {
   width: 26px; height: 26px;
@@ -718,8 +720,8 @@ input[type="range"]::-moz-range-thumb {
    * the image instead. The logo becomes a hamburger in the same spot, which
    * is the only hint that the list is still there. */
   .brand-mark { display: none; }
-  .menu-btn { display: inline-flex; color: var(--text); }
-  .menu-btn[aria-expanded="true"] {
+  .brand .menu-btn { display: inline-flex; color: var(--text); }
+  .brand .menu-btn[aria-expanded="true"] {
     background: var(--accent-weak);
     border-color: var(--accent-line);
     color: var(--accent);
